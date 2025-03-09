@@ -7,9 +7,11 @@
 #include <QMouseEvent>
 #include <QApplication>
 #include <QStyle>
+#include <QGraphicsDropShadowEffect>
 
-TimerWindow::TimerWindow(QWidget* parent)
+TimerWindow::TimerWindow(Settings* settings, QWidget* parent)
     : QWidget(parent)
+      , m_appSettings(settings)
       , m_timer(new Timer(this))
       , m_mainWindow(nullptr)
 {
@@ -20,6 +22,11 @@ TimerWindow::TimerWindow(QWidget* parent)
     setupUi();
     setupConnections();
 
+    // Initialize timer with durations from settings - NOW USING m_appSettings
+    m_timer->setWorkDuration(m_appSettings->getWorkDuration()); // Convert minutes to seconds
+    m_timer->setShortBreakDuration(m_appSettings->getShortBreakDuration());
+    m_timer->setLongBreakDuration(m_appSettings->getLongBreakDuration());
+    m_timer->setLongBreakInterval(m_appSettings->getLongBreakInterval());
     // Initialize timer display
     updateTimerDisplay(m_timer->getRemainingTime());
     handleModeChanged(m_timer->getMode());
@@ -28,132 +35,6 @@ TimerWindow::TimerWindow(QWidget* parent)
 
 TimerWindow::~TimerWindow() = default;
 
-// void TimerWindow::setupUi()
-// {
-//     // Create main layout
-//     m_mainLayout = new QVBoxLayout(this);
-//     m_mainLayout->setSpacing(10);
-//     m_mainLayout->setContentsMargins(20, 20, 20, 20);
-//
-//     // Create timer display label
-//     m_timerLabel = new QLabel("25:00", this);
-//     QFont timerFont = m_timerLabel->font();
-//     timerFont.setPointSize(48);
-//     timerFont.setBold(true);
-//     m_timerLabel->setFont(timerFont);
-//     m_timerLabel->setAlignment(Qt::AlignCenter);
-//     m_timerLabel->setStyleSheet("color: white;"); // Only color, no background
-//     m_mainLayout->addWidget(m_timerLabel);
-//
-//     // Create button layout
-//     m_buttonLayout = new QHBoxLayout();
-//     m_buttonLayout->setSpacing(10);
-//     m_buttonLayout->setContentsMargins(0, 0, 0, 0);
-//
-//     // Update the button styles to remove background or make it very transparent
-//     // QString buttonStyle =
-//     //     "QPushButton { color: white; background-color: rgba(0, 0, 0, 30); border-radius: 16px; padding: 8px; } "
-//     //     "QPushButton:hover { background-color: rgba(40, 40, 40, 80); }";
-//     // QString buttonStyle =
-//     //     "QPushButton { color: white; background-color: rgba(0, 0, 0, 25); border-radius: 16px; padding: 8px; opacity: 0.1; } "
-//     //     "QPushButton:hover { background-color: rgba(40, 40, 40, 80); opacity: 1.0; }";
-//     // Create control buttons with icons
-//     QString buttonStyle = R"(
-//     QPushButton {
-//         color: white;
-//         background-color: rgba(0, 0, 0, 0); /* Fully transparent */
-//         border-radius: 16px;
-//         padding: 8px;
-//     }
-//     QPushButton:hover {
-//         background-color: rgba(40, 40, 40, 80); /* Visible only on hover */
-//     }
-//     QPushButton:pressed {
-//         background-color: rgba(80, 80, 80, 150);
-//     }
-//     )";
-//
-//     m_startPauseButton = new QPushButton(this);
-//     m_startPauseButton->setStyleSheet(buttonStyle);
-//     m_startPauseButton->setIconSize(QSize(32, 32));
-//
-//     // Initially transparent icon
-//     QPixmap pixmap = m_startPauseButton->icon().pixmap(32, 32);
-//     QPixmap transparentPixmap(pixmap.size());
-//     transparentPixmap.fill(Qt::transparent);
-//     QPainter painter(&transparentPixmap);
-//     painter.setOpacity(0.0); // Fully transparent
-//     painter.drawPixmap(0, 0, pixmap);
-//     painter.end();
-//
-//     m_startPauseButton->setIcon(QIcon(transparentPixmap));
-//     // // Then set the icons with lower opacity initially
-//     // m_startPauseButton->setIcon(QIcon::fromTheme("media-playback-start",
-//     //                                              QApplication::style()->standardIcon(QStyle::SP_MediaPlay)));
-//     // m_startPauseButton->setIconSize(QSize(32, 32));
-//     // m_startPauseButton->setStyleSheet(buttonStyle);
-//     //
-//     // // Set the icon opacity (0.1 = 10% opacity)
-//     // QPixmap pixmap = m_startPauseButton->icon().pixmap(32, 32);
-//     // QPixmap transparentPixmap(pixmap.size());
-//     // transparentPixmap.fill(Qt::transparent);
-//     // QPainter painter(&transparentPixmap);
-//     // painter.setOpacity(0.1); // 10% opacity
-//     // painter.drawPixmap(0, 0, pixmap);
-//     // painter.end();
-//     // m_startPauseButton->setIcon(QIcon(transparentPixmap));
-//
-//     // m_startPauseButton->setIcon(QIcon::fromTheme("media-playback-start",
-//     //                                              QApplication::style()->standardIcon(QStyle::SP_MediaPlay)));
-//     // m_startPauseButton->setToolTip("Start");
-//     // m_startPauseButton->setIconSize(QSize(32, 32));
-//     // m_startPauseButton->setFlat(true);
-//     // m_startPauseButton->setStyleSheet(buttonStyle);
-//
-//     m_stopButton = new QPushButton(this);
-//     m_stopButton->setIcon(QIcon::fromTheme("media-playback-stop",
-//                                            QApplication::style()->standardIcon(QStyle::SP_MediaStop)));
-//     m_stopButton->setToolTip("Stop");
-//     m_stopButton->setIconSize(QSize(32, 32));
-//     m_stopButton->setFlat(true);
-//     m_stopButton->setEnabled(false);
-//     m_stopButton->setStyleSheet(buttonStyle);
-//
-//     m_settingsButton = new QPushButton(this);
-//     m_settingsButton->setIcon(QIcon::fromTheme("preferences-system",
-//                                                QApplication::style()->standardIcon(QStyle::SP_FileDialogDetailedView)));
-//     m_settingsButton->setToolTip("Settings");
-//     m_settingsButton->setIconSize(QSize(32, 32));
-//     m_settingsButton->setFlat(true);
-//     m_settingsButton->setStyleSheet(buttonStyle);
-//
-//     // Add buttons to layout
-//     m_buttonLayout->addStretch();
-//     m_buttonLayout->addWidget(m_startPauseButton);
-//     m_buttonLayout->addWidget(m_stopButton);
-//     m_buttonLayout->addWidget(m_settingsButton);
-//     m_buttonLayout->addStretch();
-//
-//     m_mainLayout->addLayout(m_buttonLayout);
-//
-//     // Create close button
-//     m_closeButton = new QPushButton("×", this);
-//     m_closeButton->setFixedSize(24, 24);
-//     m_closeButton->setToolTip("Close");
-//     m_closeButton->setFlat(true);
-//
-//
-//     m_closeButton->setStyleSheet(
-//         "QPushButton { color: white; background-color: rgba(255, 255, 255, 10); border-radius: 12px; font-weight: bold; } "
-//         "QPushButton:hover { background-color: rgba(255, 255, 255, 30); }");
-//
-//
-//     // Position close button in top-right corner
-//     m_closeButton->move(this->width() - 30, 5);
-//
-//     // Set size
-//     resize(300, 150);
-// }
 
 void TimerWindow::setupUi()
 {
@@ -165,16 +46,19 @@ void TimerWindow::setupUi()
     // Create timer display label
     m_timerLabel = new QLabel("25:00", this);
     QFont timerFont = m_timerLabel->font();
-    timerFont.setPointSize(48);
+    timerFont.setPointSize(m_appSettings->getFontSize());
     timerFont.setBold(true);
     m_timerLabel->setFont(timerFont);
     m_timerLabel->setAlignment(Qt::AlignCenter);
-    m_timerLabel->setStyleSheet("color: white;"); // Only color, no background
+
+    updateTimerLabelStyle(); // New method to update the label style
+
+    // m_timerLabel->setStyleSheet("color: white;"); // Only color, no background
     m_mainLayout->addWidget(m_timerLabel);
 
     // Create button layout
     m_buttonLayout = new QHBoxLayout();
-    m_buttonLayout->setSpacing(10);
+    m_buttonLayout->setSpacing(5);
     m_buttonLayout->setContentsMargins(0, 0, 0, 0);
 
     // Button style: fully transparent, visible on hover
@@ -183,7 +67,7 @@ void TimerWindow::setupUi()
             color: white;
             background-color: rgba(0, 0, 0, 0); /* Fully transparent */
             border-radius: 16px;
-            padding: 8px;
+            padding: 4px;
         }
         QPushButton:hover {
             background-color: rgba(40, 40, 40, 80); /* Visible only on hover */
@@ -218,6 +102,20 @@ void TimerWindow::setupUi()
     m_stopButton->setEnabled(false);
     m_stopButton->setStyleSheet(buttonStyle);
 
+
+    // Create Skip Button (after creating the other buttons)
+    m_skipButton = new QPushButton(this);
+    m_skipButton->setIcon(QIcon::fromTheme("media-skip-forward",
+                                           QApplication::style()->standardIcon(QStyle::SP_MediaSkipForward)));
+    m_skipButton->setToolTip("Skip Break");
+    m_skipButton->setIconSize(QSize(32, 32));
+    m_skipButton->setFlat(true);
+    m_skipButton->setEnabled(false); // Initially disabled
+    m_skipButton->setStyleSheet(buttonStyle);
+
+    // Add to button layout (place it between stop and settings button)
+
+
     // Create Settings Button
     m_settingsButton = new QPushButton(this);
     m_settingsButton->setIcon(QIcon::fromTheme("preferences-system",
@@ -231,6 +129,7 @@ void TimerWindow::setupUi()
     m_buttonLayout->addStretch();
     m_buttonLayout->addWidget(m_startPauseButton);
     m_buttonLayout->addWidget(m_stopButton);
+    m_buttonLayout->addWidget(m_skipButton);
     m_buttonLayout->addWidget(m_settingsButton);
     m_buttonLayout->addStretch();
 
@@ -269,22 +168,45 @@ void TimerWindow::setupUi()
     resize(300, 150);
 }
 
-// void TimerWindow::enterEvent(QEvent* event)
-// {
-//     m_startPauseButton->show();
-//     m_stopButton->show();
-//     m_settingsButton->show();
-//     updateStartPauseButton(); // Keep this line to ensure correct icon update on hover
-//     QWidget::enterEvent(event);
-// }
-//
-// void TimerWindow::leaveEvent(QEvent* event)
-// {
-//     m_startPauseButton->hide();
-//     m_stopButton->hide();
-//     m_settingsButton->hide();
-//     QWidget::leaveEvent(event);
-// }
+void TimerWindow::updateTimerLabelStyle()
+{
+    // Get font size
+    int fontSize = m_appSettings->getFontSize();
+
+    // Set font color
+    QString styleSheet = QString("color: %1;").arg(m_appSettings->getFontColor());
+
+    // Apply background color for break modes
+    if (m_timer->getMode() == Timer::TimerMode::ShortBreak ||
+        m_timer->getMode() == Timer::TimerMode::LongBreak)
+    {
+        styleSheet += " background-color: rgba(46, 204, 113, 150);"; // Green background
+    }
+
+    m_timerLabel->setStyleSheet(styleSheet);
+
+    // Apply text shadow if enabled
+    if (m_appSettings->getTextShadowEnabled())
+    {
+        auto shadowEffect = new QGraphicsDropShadowEffect();
+        shadowEffect->setOffset(m_appSettings->getTextShadowOffsetX(),
+                                m_appSettings->getTextShadowOffsetY());
+        shadowEffect->setBlurRadius(m_appSettings->getTextShadowBlur());
+        shadowEffect->setColor(QColor(m_appSettings->getTextShadowColor()));
+
+        m_timerLabel->setGraphicsEffect(shadowEffect);
+    }
+    else
+    {
+        m_timerLabel->setGraphicsEffect(nullptr); // Remove effect if disabled
+    }
+
+    // Adjust the window size based on font size and layout
+    updateWindowSize();
+    qDebug() << "Applied style:" << styleSheet;
+}
+
+
 void TimerWindow::setupConnections()
 {
     // Connect timer signals
@@ -296,7 +218,14 @@ void TimerWindow::setupConnections()
     connect(m_startPauseButton, &QPushButton::clicked, this, &TimerWindow::onStartPauseButtonClicked);
     connect(m_stopButton, &QPushButton::clicked, this, &TimerWindow::onStopButtonClicked);
     connect(m_settingsButton, &QPushButton::clicked, this, &TimerWindow::onSettingsButtonClicked);
+    connect(m_skipButton, &QPushButton::clicked, this, &TimerWindow::onSkipButtonClicked);
 
+
+    // connect(m_closeButton, &QPushButton::clicked, this, &QWidget::close);
+    // connect(m_closeButton, &QPushButton::clicked, qApp, &QApplication::quit);
+
+    // Connect Settings::settingsChanged signal to TimerWindow::onSettingsChanged slot
+    connect(m_appSettings, &Settings::settingsChanged, this, &TimerWindow::onSettingsChanged);
     // connect(m_closeButton, &QPushButton::clicked, this, &QWidget::close);
     connect(m_closeButton, &QPushButton::clicked, qApp, &QApplication::quit);
 }
@@ -312,24 +241,20 @@ void TimerWindow::updateTimerDisplay(int remainingSeconds)
 
 void TimerWindow::handleModeChanged(Timer::TimerMode mode)
 {
-    QString colorStyle;
+    // Update the style with the current mode
+    updateTimerLabelStyle();
 
+    // Update the skip button state
     switch (mode)
     {
     case Timer::TimerMode::Work:
-        colorStyle = "color: white;"; // Only set text color, remove background
+        m_skipButton->setEnabled(false); // Disable skip during work
         break;
-
     case Timer::TimerMode::ShortBreak:
-        colorStyle = "color: white; background-color: rgba(46, 204, 113, 100);"; // Green - keep background
-        break;
-
     case Timer::TimerMode::LongBreak:
-        colorStyle = "color: white; background-color: rgba(52, 152, 219, 100);"; // Blue - keep background
+        m_skipButton->setEnabled(true); // Enable skip during breaks
         break;
     }
-
-    m_timerLabel->setStyleSheet(colorStyle);
 }
 
 void TimerWindow::handleStateChanged(Timer::TimerState state)
@@ -405,7 +330,8 @@ void TimerWindow::onSettingsButtonClicked()
 {
     if (!m_mainWindow)
     {
-        m_mainWindow = new MainWindow(nullptr); // Use nullptr instead of this to avoid parent-child relationship
+        // Pass the settings object
+        m_mainWindow = new MainWindow(m_appSettings, nullptr);
 
         // Share the timer instance with MainWindow
         if (m_mainWindow->m_timer)
@@ -428,14 +354,6 @@ void TimerWindow::paintEvent(QPaintEvent* event)
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-
-    // // Draw rounded rectangle background with semi-transparency
-    // QColor backgroundColor(30, 30, 30, 180); // Semi-transparent dark background
-    // painter.setBrush(backgroundColor);
-    // painter.setPen(Qt::NoPen);
-    //
-    // QRect roundedRect = rect().adjusted(0, 0, 0, 0);
-    // painter.drawRoundedRect(roundedRect, 15, 15);
 }
 
 void TimerWindow::mousePressEvent(QMouseEvent* event)
@@ -471,8 +389,9 @@ void TimerWindow::enterEvent(QEvent* event)
 {
     m_startPauseButton->show();
     m_stopButton->show();
+    m_skipButton->show(); // Show skip button
     m_settingsButton->show();
-    updateStartPauseButton(); // Keep this line to ensure correct icon update on hover
+    updateStartPauseButton();
     QWidget::enterEvent(event);
 }
 
@@ -480,6 +399,60 @@ void TimerWindow::leaveEvent(QEvent* event)
 {
     m_startPauseButton->hide();
     m_stopButton->hide();
+    m_skipButton->hide(); // Hide skip button
     m_settingsButton->hide();
     QWidget::leaveEvent(event);
+}
+
+void TimerWindow::onSettingsChanged() // <----- IMPLEMENT onSettingsChanged SLOT
+{
+    // Timer settings
+    m_timer->setWorkDuration(m_appSettings->getWorkDuration());
+    m_timer->setShortBreakDuration(m_appSettings->getShortBreakDuration());
+    m_timer->setLongBreakDuration(m_appSettings->getLongBreakDuration());
+    m_timer->setLongBreakInterval(m_appSettings->getLongBreakInterval());
+
+    // Font settings
+    QFont timerFont = m_timerLabel->font();
+    timerFont.setPointSize(m_appSettings->getFontSize());
+    m_timerLabel->setFont(timerFont);
+
+    // Update label style
+    updateTimerLabelStyle();
+
+    // Force an immediate update of the timer display
+    updateTimerDisplay(m_timer->getRemainingTime());
+
+    // Save settings to ensure they persist
+    m_appSettings->saveSettings();
+
+    // Force UI update
+    update();;
+}
+
+void TimerWindow::onSkipButtonClicked()
+{
+    // Skip current break and move to next work session
+    if (m_timer->getMode() == Timer::TimerMode::ShortBreak ||
+        m_timer->getMode() == Timer::TimerMode::LongBreak)
+    {
+        m_timer->skipBreak(); // We need to add this method to the Timer class
+    }
+}
+
+void TimerWindow::updateWindowSize()
+{
+    int fontSize = m_appSettings->getFontSize();
+
+    // Calculate text size based on font size
+    int textWidth = fontSize * 3.5; // Adjusted width for "XX:XX"
+    int textHeight = fontSize * 2; // Adjusted height for compact view
+
+    // Add small padding
+    int padding = 10;
+
+    // Resize the window to tightly fit the timer text
+    resize(textWidth + padding, textHeight + padding);
+
+    qDebug() << "Window resized to:" << width() << "x" << height();
 }

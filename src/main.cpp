@@ -3,10 +3,12 @@
 //
 
 #include "timerwindow.h"
+#include "settings.h"
 #include <QApplication>
 #include <QDir>
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     // Initialize Qt application framework with command-line arguments
     QApplication app(argc, argv);
 
@@ -21,10 +23,22 @@ int main(int argc, char *argv[]) {
     QDir().mkpath(QDir::currentPath() + "/resources/sounds");
     QDir().mkpath(QDir::currentPath() + "/resources/styles");
 
-    // Initialize and display the timer window instead of MainWindow
-    TimerWindow timerWindow;
-    timerWindow.show();
+    // Instantiate Settings object HERE
+    Settings* appSettings = new Settings(); // Create as pointer
 
-    // Start the Qt event loop
+    // Initialize and display the timer window, PASSING the settings object
+    TimerWindow timerWindow(appSettings);
+    // <----- MODIFIED LINE: Pass the appSettings object to the TimerWindow constructor
+
+    // Initialize and display the timer window instead of MainWindow
+    // TimerWindow timerWindow;
+    timerWindow.show();
+    // Make sure appSettings outlives the application
+    QObject::connect(&app, &QApplication::aboutToQuit, [appSettings]()
+    {
+        appSettings->saveSettings();
+        delete appSettings;
+    });
+
     return app.exec();
 }

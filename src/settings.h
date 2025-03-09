@@ -8,11 +8,12 @@
 #include <QObject>
 #include <QSettings>
 
-class Settings : public QObject {
+class Settings : public QObject
+{
     Q_OBJECT
 
 public:
-    explicit Settings(QObject *parent = nullptr);
+    explicit Settings(QObject* parent = nullptr);
     ~Settings() override;
 
     // Timer durations
@@ -32,7 +33,7 @@ public:
     bool getDesktopNotificationsEnabled() const;
 
     void setSoundEnabled(bool enabled);
-    void setSoundFile(const QString &filePath);
+    void setSoundFile(const QString& filePath);
     void setDesktopNotificationsEnabled(bool enabled);
 
     // UI settings
@@ -40,17 +41,35 @@ public:
     bool getMinimizeToTray() const;
     bool getStartMinimized() const;
 
-    void setTheme(const QString &theme);
+    void setTheme(const QString& theme);
     void setMinimizeToTray(bool enabled);
     void setStartMinimized(bool enabled);
+
+    // Font settings
+    int getFontSize() const;
+    QString getFontColor() const;
+    bool getTextShadowEnabled() const;
+    QString getTextShadowColor() const;
+    int getTextShadowBlur() const;
+    int getTextShadowOffsetX() const;
+    int getTextShadowOffsetY() const;
+
+    void setFontSize(int size);
+    void setFontColor(const QString& color);
+    void setTextShadowEnabled(bool enabled);
+    void setTextShadowColor(const QString& color);
+    void setTextShadowBlur(int blur);
+    void setTextShadowOffsetX(int offset);
+    void setTextShadowOffsetY(int offset);
+
 
     // Load and save settings
     void loadSettings();
     void saveSettings();
     void resetToDefaults();
 
-    signals:
-        void settingsChanged();
+signals:
+    void settingsChanged();
 
 private:
     QSettings m_settings;
@@ -70,6 +89,14 @@ private:
     QString m_theme;
     bool m_minimizeToTray;
     bool m_startMinimized;
+
+    int m_fontSize;
+    QString m_fontColor;
+    bool m_textShadowEnabled;
+    QString m_textShadowColor;
+    int m_textShadowBlur;
+    int m_textShadowOffsetX;
+    int m_textShadowOffsetY;
 };
 
 #endif // ZIGA_POMODORO_SETTINGS_H

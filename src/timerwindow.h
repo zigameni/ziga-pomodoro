@@ -13,13 +13,17 @@
 
 #include "timer.h"
 #include "mainwindow.h"
+#include "settings.h" // <----- ADD THIS LINE: Include settings.h
 
 class TimerWindow : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit TimerWindow(QWidget* parent = nullptr);
+    // explicit TimerWindow(QWidget* parent = nullptr);
+    explicit TimerWindow(Settings* settings, QWidget* parent = nullptr); // <----- MODIFIED CONSTRUCTOR
+
+    // explicit TimerWindow(Settings* settings);
     ~TimerWindow() override;
 
     // Access to internal timer for MainWindow
@@ -40,10 +44,13 @@ private slots:
     void resizeEvent(QResizeEvent* event) override;
     void enterEvent(QEvent* event) override;
     void leaveEvent(QEvent* event) override;
+    void onSettingsChanged(); // <----- ADD THIS LINE: Declare onSettingsChanged slot
+
     // enterEvent(QEvent* event)
 
 private:
     void setupUi();
+    void updateTimerLabelStyle();
     void setupConnections();
     void updateStartPauseButton();
 
@@ -55,6 +62,7 @@ private:
     QVBoxLayout* m_mainLayout;
     QHBoxLayout* m_buttonLayout;
     QPushButton* m_closeButton;
+    QPushButton* m_skipButton;
 
     // Core components
     Timer* m_timer;
@@ -65,6 +73,10 @@ private:
 
     bool isRunning = false; // Track if timer is running
     void updateStartPauseIcon();
+    void onSkipButtonClicked();
+    void updateWindowSize();
+
+    Settings* m_appSettings; // <----- ADD THIS LINE: Member to store Settings pointer
 };
 
 #endif // ZIGA_POMODORO_TIMERWINDOW_H

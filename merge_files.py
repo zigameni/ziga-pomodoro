@@ -29,19 +29,22 @@ def merge_files(root_dir, output_file, exclude_dirs=None, exclude_files=None):
 if __name__ == "__main__":
     root_directory = "."  # Change this to your C++ project root directory
     output_filename = "merged_project.txt"
-    exclude_dirs_list = ["build", "bin", "out", ".idea", ".vscode", "cmake-build-debug", "resources"]  # Directories to exclude
+    exclude_dirs_list = ["build", "bin", "out", ".idea", ".vscode", ".git" ,"cmake-build-debug", "resources"]  # Directories to exclude
     exclude_files_list = [
     	"CMakeLists.txt", 
     	"Makefile", 
+    	".gitignore",
     	"merge_files.py", 
     	"merged_project.txt", 
     	"ReadMe.md", 
     	"settings.cpp",
-    	"settings.h", 
+    	"settings.h",
+    	"timer.h", 
     	"timer.cpp",
-    	"timer.h",
-    	"mainwindow.cpp",
-    	"mainwindow.h"
+    	#"mainwindow.h",
+    	#"mainwindow.cpp",
+    	"timerwindow.h",
+    	"timerwindow.cpp",
     	]  # Specific files to exclude
     
     merge_files(root_directory, output_filename, exclude_dirs_list, exclude_files_list)

@@ -6,19 +6,27 @@
 #include <QCloseEvent>
 #include <QApplication>
 #include <QFile>
-#include <QMessageBox>
-#include <QDialogButtonBox>
 #include <QTabWidget>
+#include <QCheckBox>     // For QCheckBox
+#include <QSpinBox>      // For QSpinBox
+#include <QComboBox>     // For QComboBox
+#include <QPushButton>    // For QPushButton
+#include <QDialogButtonBox> // For QDialogButtonBox
+#include <QFormLayout>   // For QFormLayout
+#include <QVBoxLayout>    // For QVBoxLayout
+#include <QGroupBox>     // For QGroupBox
+#include <QColorDialog>  // For QColorDialog
 
-MainWindow::MainWindow(QWidget *parent)
+
+// In mainwindow.cpp
+MainWindow::MainWindow(Settings* settings, QWidget* parent)
     : QMainWindow(parent)
-    , m_timer(new Timer(this))
-    , m_settings(new Settings(this))
+      , m_timer(new Timer(this))
+      , m_settings(settings) // Use the passed settings object
 #ifdef HAVE_QT_MULTIMEDIA
-    , m_mediaPlayer(new QMediaPlayer(this))
-//    , m_audioOutput(new QAudioOutput(this))
+      , m_mediaPlayer(new QMediaPlayer(this))
 #endif
-    , m_totalTime(0)
+      , m_totalTime(0)
 {
     setupUi();
     setupTrayIcon();
@@ -27,10 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Apply settings
     applySettings();
 
-    // Initialize timer display
-    // updateTimerDisplay(m_timer->getRemainingTime());
-    // handleModeChanged(m_timer->getMode());
-    // handleStateChanged(m_timer->getState());
+
     handlePomodorosCompletedChanged(m_timer->getTotalCompletedPomodoros());
 
     // Set window title
@@ -38,15 +43,15 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowIcon(QIcon(":/icons/tomato.png"));
 
 #ifdef HAVE_QT_MULTIMEDIA
-    // Configure media player
-//    m_mediaPlayer->setAudioOutput(m_audioOutput);
-        m_mediaPlayer->setVolume(100);
+
+    m_mediaPlayer->setVolume(100);
 #endif
 }
 
 MainWindow::~MainWindow() = default;
 
-void MainWindow::setupUi() {
+void MainWindow::setupUi()
+{
     // Create central widget
     m_centralWidget = new QWidget(this);
     setCentralWidget(m_centralWidget);
@@ -102,7 +107,8 @@ void MainWindow::setupUi() {
 }
 
 
-void MainWindow::setupTrayIcon() {
+void MainWindow::setupTrayIcon()
+{
     // Create tray icon
     m_trayIcon = new QSystemTrayIcon(QIcon(":/icons/tomato.png"), this);
 
@@ -111,17 +117,13 @@ void MainWindow::setupTrayIcon() {
 
     // Create actions
     m_showAction = new QAction("Show", this);
-    // m_startAction = new QAction("Start", this);
-    // m_pauseAction = new QAction("Pause", this);
-    // m_resetAction = new QAction("Reset", this);
+
     m_quitAction = new QAction("Quit", this);
 
     // Add actions to menu
     m_trayMenu->addAction(m_showAction);
     m_trayMenu->addSeparator();
-    // m_trayMenu->addAction(m_startAction);
-    // m_trayMenu->addAction(m_pauseAction);
-    // m_trayMenu->addAction(m_resetAction);
+
     m_trayMenu->addSeparator();
     m_trayMenu->addAction(m_quitAction);
 
@@ -133,7 +135,8 @@ void MainWindow::setupTrayIcon() {
 }
 
 // In mainwindow.cpp - setupConnections()
-void MainWindow::setupConnections() {
+void MainWindow::setupConnections()
+{
     // Connect timer signals (for statistics only)
     connect(m_timer, &Timer::pomodorosCompletedChanged, this, &MainWindow::handlePomodorosCompletedChanged);
 
@@ -146,198 +149,90 @@ void MainWindow::setupConnections() {
     connect(m_quitAction, &QAction::triggered, qApp, &QApplication::quit);
 }
 
-// void MainWindow::updateTimerDisplay(int remainingSeconds) {
-//     int minutes = remainingSeconds / 60;
-//     int seconds = remainingSeconds % 60;
-//     m_timerLabel->setText(QString("%1:%2")
-//                              .arg(minutes, 2, 10, QChar('0'))
-//                              .arg(seconds, 2, 10, QChar('0')));
-//
-//     // Update progress bar
-//     if (m_totalTime > 0) {
-//         int progress = (static_cast<float>(remainingSeconds) / m_totalTime) * 100;
-//         m_progressBar->setValue(progress);
-//     }
-//
-//     // Update tray tooltip
-//     updateWindowTitle();
-// }
 
-// void MainWindow::handleTimerCompleted(Timer::TimerMode mode) {
-//     // Play notification sound
-//     playNotificationSound();
-//
-//     // Show desktop notification
-//     QString title;
-//     QString message;
-//
-//     switch (mode) {
-//         case Timer::TimerMode::Work:
-//             title = "Work Session Completed";
-//             message = "Time for a break!";
-//             break;
-//
-//         case Timer::TimerMode::ShortBreak:
-//             title = "Break Completed";
-//             message = "Time to get back to work!";
-//             break;
-//
-//         case Timer::TimerMode::LongBreak:
-//             title = "Long Break Completed";
-//             message = "Time to start a new work session!";
-//             break;
-//     }
-//
-//     showDesktopNotification(title, message);
-// }
-
-// void MainWindow::handleModeChanged(Timer::TimerMode mode) {
-//     QString modeText;
-//     QString modeStyle;
-//
-//     switch (mode) {
-//         case Timer::TimerMode::Work:
-//             modeText = "Work";
-//             modeStyle = "color: #E74C3C;"; // Red
-//             m_totalTime = m_settings->getWorkDuration() * 60;
-//             break;
-//
-//         case Timer::TimerMode::ShortBreak:
-//             modeText = "Short Break";
-//             modeStyle = "color: #2ECC71;"; // Green
-//             m_totalTime = m_settings->getShortBreakDuration() * 60;
-//             break;
-//
-//         case Timer::TimerMode::LongBreak:
-//             modeText = "Long Break";
-//             modeStyle = "color: #3498DB;"; // Blue
-//             m_totalTime = m_settings->getLongBreakDuration() * 60;
-//             break;
-//     }
-//
-//     m_modeLabel->setText(modeText);
-//     m_modeLabel->setStyleSheet(modeStyle);
-//
-//     updateWindowTitle();
-// }
-
-// void MainWindow::handleStateChanged(Timer::TimerState state) {
-//     switch (state) {
-//         case Timer::TimerState::Running:
-//             m_startButton->setEnabled(false);
-//             m_pauseButton->setEnabled(true);
-//             m_resetButton->setEnabled(true);
-//             m_skipButton->setEnabled(true);
-//             m_startAction->setEnabled(false);
-//             m_pauseAction->setEnabled(true);
-//             m_resetAction->setEnabled(true);
-//             break;
-//
-//         case Timer::TimerState::Paused:
-//             m_startButton->setEnabled(true);
-//             m_pauseButton->setEnabled(false);
-//             m_resetButton->setEnabled(true);
-//             m_skipButton->setEnabled(true);
-//             m_startAction->setEnabled(true);
-//             m_pauseAction->setEnabled(false);
-//             m_resetAction->setEnabled(true);
-//             break;
-//
-//         case Timer::TimerState::Stopped:
-//             m_startButton->setEnabled(true);
-//             m_pauseButton->setEnabled(false);
-//             m_resetButton->setEnabled(false);
-//             m_skipButton->setEnabled(true);
-//             m_startAction->setEnabled(true);
-//             m_pauseAction->setEnabled(false);
-//             m_resetAction->setEnabled(false);
-//             break;
-//     }
-//
-//     updateWindowTitle();
-// }
-
-void MainWindow::handlePomodorosCompletedChanged(int count) {
+void MainWindow::handlePomodorosCompletedChanged(int count)
+{
     m_pomodorosCompletedLabel->setText(QString("Pomodoros completed: %1").arg(count));
 }
 
-// void MainWindow::onStartButtonClicked() {
-//     m_timer->start();
-// }
-
-// void MainWindow::onPauseButtonClicked() {
-//     m_timer->pause();
-// }
-//
-// void MainWindow::onResetButtonClicked() {
-//     m_timer->reset();
-// }
-//
-// void MainWindow::onSkipButtonClicked() {
-//     m_timer->skipToNext();
-// }
-
-void MainWindow::onSettingsButtonClicked() {
+void MainWindow::onSettingsButtonClicked()
+{
     showSettingsDialog();
 }
 
-void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason) {
-    if (reason == QSystemTrayIcon::Trigger) {
-        if (isVisible()) {
+void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
+{
+    if (reason == QSystemTrayIcon::Trigger)
+    {
+        if (isVisible())
+        {
             hide();
-        } else {
+        }
+        else
+        {
             show();
             activateWindow();
         }
     }
 }
 
-void MainWindow::closeEvent(QCloseEvent *event) {
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    m_settings->saveSettings(); // Save settings before closing
+
     // Always just hide the window instead of closing the application
     hide();
     event->ignore();
 }
 
-void MainWindow::playNotificationSound() {
+// Not as important
+void MainWindow::playNotificationSound()
+{
 #ifdef HAVE_QT_MULTIMEDIA
-    if (m_settings->getSoundEnabled()) {
+    if (m_settings->getSoundEnabled())
+    {
         m_mediaPlayer->setMedia(QUrl::fromLocalFile(m_settings->getSoundFile()));
         m_mediaPlayer->play();
     }
 #endif
 }
 
-void MainWindow::showDesktopNotification(const QString &title, const QString &message) {
-    if (m_settings->getDesktopNotificationsEnabled()) {
+void MainWindow::showDesktopNotification(const QString& title, const QString& message)
+{
+    if (m_settings->getDesktopNotificationsEnabled())
+    {
         m_trayIcon->showMessage(title, message, QSystemTrayIcon::Information, 3000);
     }
 }
 
-void MainWindow::updateWindowTitle() {
+void MainWindow::updateWindowTitle()
+{
     QString stateStr;
-    switch (m_timer->getState()) {
-        case Timer::TimerState::Running:
-            stateStr = "Running";
-            break;
-        case Timer::TimerState::Paused:
-            stateStr = "Paused";
-            break;
-        case Timer::TimerState::Stopped:
-            stateStr = "Stopped";
-            break;
+    switch (m_timer->getState())
+    {
+    case Timer::TimerState::Running:
+        stateStr = "Running";
+        break;
+    case Timer::TimerState::Paused:
+        stateStr = "Paused";
+        break;
+    case Timer::TimerState::Stopped:
+        stateStr = "Stopped";
+        break;
     }
 
     QString modeStr;
-    switch (m_timer->getMode()) {
-        case Timer::TimerMode::Work:
-            modeStr = "Work";
-            break;
-        case Timer::TimerMode::ShortBreak:
-            modeStr = "Short Break";
-            break;
-        case Timer::TimerMode::LongBreak:
-            modeStr = "Long Break";
-            break;
+    switch (m_timer->getMode())
+    {
+    case Timer::TimerMode::Work:
+        modeStr = "Work";
+        break;
+    case Timer::TimerMode::ShortBreak:
+        modeStr = "Short Break";
+        break;
+    case Timer::TimerMode::LongBreak:
+        modeStr = "Long Break";
+        break;
     }
 
     // QString timeStr = m_timerLabel->text();
@@ -348,7 +243,8 @@ void MainWindow::updateWindowTitle() {
     m_trayIcon->setToolTip(windowTitle());
 }
 
-void MainWindow::applySettings() {
+void MainWindow::applySettings()
+{
     // Apply timer settings
     m_timer->setWorkDuration(m_settings->getWorkDuration());
     m_timer->setShortBreakDuration(m_settings->getShortBreakDuration());
@@ -357,51 +253,52 @@ void MainWindow::applySettings() {
 
     // Apply UI settings
     loadStyleSheet(m_settings->getTheme());
-
-    // Update display
-    // handleModeChanged(m_timer->getMode());
-    // updateTimerDisplay(m_timer->getRemainingTime());
 }
 
-void MainWindow::loadStyleSheet(const QString &theme) {
+void MainWindow::loadStyleSheet(const QString& theme)
+{
     QString stylePath = QString(":/styles/%1.qss").arg(theme);
     QFile file(stylePath);
 
-    if (file.exists() && file.open(QFile::ReadOnly | QFile::Text)) {
+    if (file.exists() && file.open(QFile::ReadOnly | QFile::Text))
+    {
         QString styleSheet = QLatin1String(file.readAll());
         setStyleSheet(styleSheet);
         file.close();
-    } else {
+    }
+    else
+    {
         setStyleSheet("");
     }
 }
 
-void MainWindow::showSettingsDialog() {
+void MainWindow::showSettingsDialog()
+{
     QDialog dialog(this);
     dialog.setWindowTitle("Settings");
 
-    QTabWidget *tabWidget = new QTabWidget(&dialog);
+    QTabWidget* tabWidget = new QTabWidget(&dialog);
 
     // Timer tab
-    QWidget *timerTab = new QWidget(tabWidget);
-    QFormLayout *timerLayout = new QFormLayout(timerTab);
+    QWidget* timerTab = new QWidget(tabWidget);
+    QFormLayout* timerLayout = new QFormLayout(timerTab);
 
-    QSpinBox *workDurationSpinBox = new QSpinBox(timerTab);
+    QSpinBox* workDurationSpinBox = new QSpinBox(timerTab);
     workDurationSpinBox->setMinimum(1);
     workDurationSpinBox->setMaximum(60);
     workDurationSpinBox->setValue(m_settings->getWorkDuration());
 
-    QSpinBox *shortBreakDurationSpinBox = new QSpinBox(timerTab);
+    QSpinBox* shortBreakDurationSpinBox = new QSpinBox(timerTab);
     shortBreakDurationSpinBox->setMinimum(1);
     shortBreakDurationSpinBox->setMaximum(30);
     shortBreakDurationSpinBox->setValue(m_settings->getShortBreakDuration());
 
-    QSpinBox *longBreakDurationSpinBox = new QSpinBox(timerTab);
+    QSpinBox* longBreakDurationSpinBox = new QSpinBox(timerTab);
     longBreakDurationSpinBox->setMinimum(1);
     longBreakDurationSpinBox->setMaximum(60);
     longBreakDurationSpinBox->setValue(m_settings->getLongBreakDuration());
 
-    QSpinBox *longBreakIntervalSpinBox = new QSpinBox(timerTab);
+    QSpinBox* longBreakIntervalSpinBox = new QSpinBox(timerTab);
     longBreakIntervalSpinBox->setMinimum(1);
     longBreakIntervalSpinBox->setMaximum(10);
     longBreakIntervalSpinBox->setValue(m_settings->getLongBreakInterval());
@@ -412,13 +309,13 @@ void MainWindow::showSettingsDialog() {
     timerLayout->addRow("Long break interval (pomodoros):", longBreakIntervalSpinBox);
 
     // Notifications tab
-    QWidget *notificationsTab = new QWidget(tabWidget);
-    QVBoxLayout *notificationsLayout = new QVBoxLayout(notificationsTab);
+    QWidget* notificationsTab = new QWidget(tabWidget);
+    QVBoxLayout* notificationsLayout = new QVBoxLayout(notificationsTab);
 
-    QCheckBox *soundEnabledCheckBox = new QCheckBox("Enable sound notifications", notificationsTab);
+    QCheckBox* soundEnabledCheckBox = new QCheckBox("Enable sound notifications", notificationsTab);
     soundEnabledCheckBox->setChecked(m_settings->getSoundEnabled());
 
-    QCheckBox *desktopNotificationsEnabledCheckBox = new QCheckBox("Enable desktop notifications", notificationsTab);
+    QCheckBox* desktopNotificationsEnabledCheckBox = new QCheckBox("Enable desktop notifications", notificationsTab);
     desktopNotificationsEnabledCheckBox->setChecked(m_settings->getDesktopNotificationsEnabled());
 
     notificationsLayout->addWidget(soundEnabledCheckBox);
@@ -426,25 +323,108 @@ void MainWindow::showSettingsDialog() {
     notificationsLayout->addStretch();
 
     // UI tab
-    QWidget *uiTab = new QWidget(tabWidget);
-    QVBoxLayout *uiLayout = new QVBoxLayout(uiTab);
+    QWidget* uiTab = new QWidget(tabWidget);
+    QVBoxLayout* uiLayout = new QVBoxLayout(uiTab);
 
-    QComboBox *themeComboBox = new QComboBox(uiTab);
+    QComboBox* themeComboBox = new QComboBox(uiTab);
     themeComboBox->addItem("Default", "default");
     themeComboBox->setCurrentText("Default");
 
-    QCheckBox *minimizeToTrayCheckBox = new QCheckBox("Minimize to tray when closed", uiTab);
+    // Minimize options
+    QCheckBox* minimizeToTrayCheckBox = new QCheckBox("Minimize to tray when closed", uiTab);
     minimizeToTrayCheckBox->setChecked(m_settings->getMinimizeToTray());
 
-    QCheckBox *startMinimizedCheckBox = new QCheckBox("Start minimized", uiTab);
+    QCheckBox* startMinimizedCheckBox = new QCheckBox("Start minimized", uiTab);
     startMinimizedCheckBox->setChecked(m_settings->getStartMinimized());
 
-    QFormLayout *themeLayout = new QFormLayout();
+    // Font size
+    QSpinBox* fontSizeSpinBox = new QSpinBox(uiTab);
+    fontSizeSpinBox->setMinimum(12);
+    fontSizeSpinBox->setMaximum(96);
+    fontSizeSpinBox->setValue(m_settings->getFontSize());
+
+    // Font color
+    QPushButton* fontColorButton = new QPushButton("Select Color", uiTab);
+    fontColorButton->setAutoFillBackground(true);
+
+    // Set button background to current font color
+    QString currentColor = m_settings->getFontColor();
+    fontColorButton->setStyleSheet(QString("background-color: %1;").arg(currentColor));
+
+    // Text shadow checkbox
+    QCheckBox* textShadowCheckBox = new QCheckBox("Enable text shadow", uiTab);
+    textShadowCheckBox->setChecked(m_settings->getTextShadowEnabled());
+
+    // Shadow color
+    QPushButton* shadowColorButton = new QPushButton("Select Shadow Color", uiTab);
+    shadowColorButton->setAutoFillBackground(true);
+
+    // Set button background to current shadow color
+    QString currentShadowColor = m_settings->getTextShadowColor();
+    shadowColorButton->setStyleSheet(QString("background-color: %1;").arg(currentShadowColor));
+
+    // Shadow blur
+    QSpinBox* shadowBlurSpinBox = new QSpinBox(uiTab);
+    shadowBlurSpinBox->setMinimum(0);
+    shadowBlurSpinBox->setMaximum(20);
+    shadowBlurSpinBox->setValue(m_settings->getTextShadowBlur());
+
+    // Shadow offset X
+    QSpinBox* shadowOffsetXSpinBox = new QSpinBox(uiTab);
+    shadowOffsetXSpinBox->setMinimum(-10);
+    shadowOffsetXSpinBox->setMaximum(10);
+    shadowOffsetXSpinBox->setValue(m_settings->getTextShadowOffsetX());
+
+    // Shadow offset Y
+    QSpinBox* shadowOffsetYSpinBox = new QSpinBox(uiTab);
+    shadowOffsetYSpinBox->setMinimum(-10);
+    shadowOffsetYSpinBox->setMaximum(10);
+    shadowOffsetYSpinBox->setValue(m_settings->getTextShadowOffsetY());
+
+    // Group the shadow settings
+    QGroupBox* shadowGroupBox = new QGroupBox("Text Shadow Settings", uiTab);
+    QFormLayout* shadowLayout = new QFormLayout(shadowGroupBox);
+    shadowLayout->addRow("Shadow Color:", shadowColorButton);
+    shadowLayout->addRow("Blur Radius:", shadowBlurSpinBox);
+    shadowLayout->addRow("Offset X:", shadowOffsetXSpinBox);
+    shadowLayout->addRow("Offset Y:", shadowOffsetYSpinBox);
+
+    // Only enable shadow settings if shadow is enabled
+    shadowGroupBox->setEnabled(textShadowCheckBox->isChecked());
+
+    // Connect shadow checkbox to enable/disable shadow settings
+    connect(textShadowCheckBox, &QCheckBox::toggled, shadowGroupBox, &QGroupBox::setEnabled);
+
+    // Connect color buttons to color dialogs
+    connect(fontColorButton, &QPushButton::clicked, [&fontColorButton, this]()
+    {
+        QColor color = QColorDialog::getColor(QColor(m_settings->getFontColor()), this, "Select Font Color");
+        if (color.isValid())
+        {
+            fontColorButton->setStyleSheet(QString("background-color: %1;").arg(color.name()));
+        }
+    });
+
+    connect(shadowColorButton, &QPushButton::clicked, [&shadowColorButton, this]()
+    {
+        QColor color = QColorDialog::getColor(QColor(m_settings->getTextShadowColor()), this, "Select Shadow Color");
+        if (color.isValid())
+        {
+            shadowColorButton->setStyleSheet(QString("background-color: %1;").arg(color.name()));
+        }
+    });
+
+    // Layout for theme and minimize options
+    QFormLayout* themeLayout = new QFormLayout();
     themeLayout->addRow("Theme:", themeComboBox);
+    themeLayout->addRow("Font Size:", fontSizeSpinBox);
+    themeLayout->addRow("Font Color:", fontColorButton);
 
     uiLayout->addLayout(themeLayout);
     uiLayout->addWidget(minimizeToTrayCheckBox);
     uiLayout->addWidget(startMinimizedCheckBox);
+    uiLayout->addWidget(textShadowCheckBox);
+    uiLayout->addWidget(shadowGroupBox);
     uiLayout->addStretch();
 
     // Add tabs
@@ -453,17 +433,19 @@ void MainWindow::showSettingsDialog() {
     tabWidget->addTab(uiTab, "UI");
 
     // Button box
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::Apply);
+    QDialogButtonBox* buttonBox = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::Apply);
 
     // Layout
-    QVBoxLayout *mainLayout = new QVBoxLayout(&dialog);
+    QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
     mainLayout->addWidget(tabWidget);
     mainLayout->addWidget(buttonBox);
 
     // Connect signals
     connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-    connect(buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked, [=]() {
+    connect(buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked, [=]()
+    {
         // Apply settings
         m_settings->setWorkDuration(workDurationSpinBox->value());
         m_settings->setShortBreakDuration(shortBreakDurationSpinBox->value());
@@ -476,13 +458,38 @@ void MainWindow::showSettingsDialog() {
         m_settings->setTheme(themeComboBox->currentData().toString());
         m_settings->setMinimizeToTray(minimizeToTrayCheckBox->isChecked());
         m_settings->setStartMinimized(startMinimizedCheckBox->isChecked());
+
+        // Apply new font settings
+        m_settings->setFontSize(fontSizeSpinBox->value());
+
+        // Get color from button's stylesheet - extract the color value
+        QString fontColorStyle = fontColorButton->styleSheet();
+        int colorStart = fontColorStyle.indexOf("background-color:") + 17;
+        int colorEnd = fontColorStyle.indexOf(";", colorStart);
+        QString fontColor = fontColorStyle.mid(colorStart, colorEnd - colorStart).trimmed();
+        m_settings->setFontColor(fontColor);
+
+        m_settings->setTextShadowEnabled(textShadowCheckBox->isChecked());
+
+        // Get shadow color from button's stylesheet
+        QString shadowColorStyle = shadowColorButton->styleSheet();
+        colorStart = shadowColorStyle.indexOf("background-color:") + 17;
+        colorEnd = shadowColorStyle.indexOf(";", colorStart);
+        QString shadowColor = shadowColorStyle.mid(colorStart, colorEnd - colorStart).trimmed();
+        m_settings->setTextShadowColor(shadowColor);
+
+        m_settings->setTextShadowBlur(shadowBlurSpinBox->value());
+        m_settings->setTextShadowOffsetX(shadowOffsetXSpinBox->value());
+        m_settings->setTextShadowOffsetY(shadowOffsetYSpinBox->value());
+
 
         m_settings->saveSettings();
         applySettings();
     });
 
     // Show dialog
-    if (dialog.exec() == QDialog::Accepted) {
+    if (dialog.exec() == QDialog::Accepted)
+    {
         // Apply settings
         m_settings->setWorkDuration(workDurationSpinBox->value());
         m_settings->setShortBreakDuration(shortBreakDurationSpinBox->value());
@@ -495,6 +502,29 @@ void MainWindow::showSettingsDialog() {
         m_settings->setTheme(themeComboBox->currentData().toString());
         m_settings->setMinimizeToTray(minimizeToTrayCheckBox->isChecked());
         m_settings->setStartMinimized(startMinimizedCheckBox->isChecked());
+
+        // Apply new font settings
+        m_settings->setFontSize(fontSizeSpinBox->value());
+
+        // Get color from button's stylesheet - extract the color value
+        QString fontColorStyle = fontColorButton->styleSheet();
+        int colorStart = fontColorStyle.indexOf("background-color:") + 17;
+        int colorEnd = fontColorStyle.indexOf(";", colorStart);
+        QString fontColor = fontColorStyle.mid(colorStart, colorEnd - colorStart).trimmed();
+        m_settings->setFontColor(fontColor);
+
+        m_settings->setTextShadowEnabled(textShadowCheckBox->isChecked());
+
+        // Get shadow color from button's stylesheet
+        QString shadowColorStyle = shadowColorButton->styleSheet();
+        colorStart = shadowColorStyle.indexOf("background-color:") + 17;
+        colorEnd = shadowColorStyle.indexOf(";", colorStart);
+        QString shadowColor = shadowColorStyle.mid(colorStart, colorEnd - colorStart).trimmed();
+        m_settings->setTextShadowColor(shadowColor);
+
+        m_settings->setTextShadowBlur(shadowBlurSpinBox->value());
+        m_settings->setTextShadowOffsetX(shadowOffsetXSpinBox->value());
+        m_settings->setTextShadowOffsetY(shadowOffsetYSpinBox->value());
 
         m_settings->saveSettings();
         applySettings();

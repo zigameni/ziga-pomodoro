@@ -8,28 +8,32 @@
 #include <QObject>
 #include <QTimer>
 
-class Timer : public QObject {
+class Timer : public QObject
+{
     Q_OBJECT
 
 public:
-    enum class TimerState {
+    enum class TimerState
+    {
         Stopped,
         Running,
         Paused
     };
 
-    enum class TimerMode {
+    enum class TimerMode
+    {
         Work,
         ShortBreak,
         LongBreak
     };
 
-    explicit Timer(QObject *parent = nullptr);
+    explicit Timer(QObject* parent = nullptr);
     ~Timer() override;
 
     void start();
     void pause();
     void reset();
+    void skipBreak();
     void skipToNext();
 
     TimerState getState() const;
@@ -43,18 +47,18 @@ public:
     void setLongBreakDuration(int minutes);
     void setLongBreakInterval(int count);
 
-    signals:
-        void timerTick(int remainingSeconds);
+signals:
+    void timerTick(int remainingSeconds);
     void timerCompleted(TimerMode completedMode);
     void modeChanged(TimerMode newMode);
     void stateChanged(TimerState newState);
     void pomodorosCompletedChanged(int count);
 
-    private slots:
-        void onTimeout();
+private slots:
+    void onTimeout();
 
 private:
-    QTimer *m_timer;
+    QTimer* m_timer;
     TimerState m_state;
     TimerMode m_mode;
     int m_remainingSeconds;
