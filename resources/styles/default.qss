@@ -1,0 +1,64 @@
+/* Default style for Ziga-Pomodoro */
+
+QMainWindow {
+    background-color: #f5f5f5;
+}
+
+QLabel#timerLabel {
+    color: #2c3e50;
+    font-size: 48pt;
+    font-weight: bold;
+}
+
+QLabel#modeLabel {
+    font-size: 14pt;
+}
+
+QProgressBar {
+    border: 1px solid #bdc3c7;
+    border-radius: 5px;
+    text-align: center;
+    background-color: #ecf0f1;
+}
+
+QProgressBar::chunk {
+    background-color: #3498db;
+    border-radius: 5px;
+}
+
+QPushButton {
+    background-color: #3498db;
+    color: white;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #2980b9;
+}
+
+QPushButton:disabled {
+    background-color: #bdc3c7;
+    color: #7f8c8d;
+}
+
+QLabel#pomodorosCompletedLabel {
+    color: #7f8c8d;
+    font-size: 10pt;
+}
+
+/* Work mode colors */
+QLabel[mode="work"] {
+    color: #e74c3c;
+}
+
+/* Short break mode colors */
+QLabel[mode="shortbreak"] {
+    color: #2ecc71;
+}
+
+/* Long break mode colors */
+QLabel[mode="longbreak"] {
+    color: #3498db;
+}

@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>sounds/alarm.wav</file>
+        <file>icons/tomato.png</file>
+    </qresource>
+</RCC>
