@@ -38,6 +38,9 @@ private slots:
     void onStopButtonClicked();
     void onSettingsButtonClicked();
     void resizeEvent(QResizeEvent* event) override;
+    void enterEvent(QEvent* event) override;
+    void leaveEvent(QEvent* event) override;
+    // enterEvent(QEvent* event)
 
 private:
     void setupUi();
@@ -59,6 +62,9 @@ private:
 
     // For window dragging
     QPoint m_dragPosition;
+
+    bool isRunning = false; // Track if timer is running
+    void updateStartPauseIcon();
 };
 
 #endif // ZIGA_POMODORO_TIMERWINDOW_H
