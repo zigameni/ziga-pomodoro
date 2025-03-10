@@ -2,8 +2,7 @@
 
 A minimalist and customizable Pomodoro timer application built with Qt.
 
-![Screenshot of Ziga-Pomodoro](path/to/screenshot.png)  *(Replace `path/to/screenshot.png` with a path to your
-application's screenshot if you have one)*
+![Screenshot of Ziga-Pomodoro](/images/img.png)
 
 ## Description
 
