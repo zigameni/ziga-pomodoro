@@ -1,9 +1,6 @@
 //
 // Created by zigameni on 3/9/25.
 //
-//
-// Created by zigameni on 3/9/25.
-//
 #ifndef ZIGA_POMODORO_MAINWINDOW_H
 #define ZIGA_POMODORO_MAINWINDOW_H
 
@@ -14,6 +11,8 @@
 #include <QSystemTrayIcon>     // System tray icon functionality
 #include <QMenu>               // Menu container
 #include <QHBoxLayout>         // Horizontal layout manager
+#include <QComboBox>           // Dropdown selection widget
+#include <QDateEdit>           // Date selection widget
 
 // Conditional multimedia support
 #ifdef HAVE_QT_MULTIMEDIA
@@ -22,6 +21,8 @@
 // Application-specific headers
 #include "timer.h"             // Timer logic implementation
 #include "settings.h"          // User settings management
+#include "databasemanager.h"   // Database management
+#include "pomodoroactivitymap.h" // Pomodoro activity heatmap
 
 // Main application window class
 class MainWindow : public QMainWindow
@@ -29,11 +30,11 @@ class MainWindow : public QMainWindow
     Q_OBJECT // Required for Qt signals/slots and meta-object system
 
 public:
-    // explicit MainWindow(QWidget* parent = nullptr); // Constructor
     explicit MainWindow(Settings* settings, QWidget* parent = nullptr);
-
     ~MainWindow() override; // Destructor with override specifier
     friend class TimerWindow;
+
+    void setDatabaseManager(DatabaseManager* dbManager);
 
 protected:
     // Window management
@@ -41,9 +42,10 @@ protected:
 
 private slots:
     void handlePomodorosCompletedChanged(int count); // Update completed counter
-
-
     void onSettingsButtonClicked(); // Open settings
+    void onTimeRangeChanged(int index); // Handle time range selection
+    void onCustomDateRangeChanged(); // Handle custom date range
+    void onRefreshStats(); // Refresh statistics
 
     // System tray interactions
     void onTrayIconActivated(QSystemTrayIcon::ActivationReason reason); // Tray icon clicks
@@ -56,6 +58,8 @@ private:
     void setupUi(); // Create and arrange UI components
     void setupTrayIcon(); // Configure system tray integration
     void setupConnections(); // Connect signals to slots
+    void setupStatisticsTab(); // Set up the statistics UI
+    void updateStatistics(); // Update statistics display
 
     // Notification system
     void playNotificationSound(); // Audio feedback
@@ -71,6 +75,17 @@ private:
 
     // Stats display elements
     QLabel* m_pomodorosCompletedLabel; // Completed sessions counter
+    QLabel* m_totalTimeLabel; // Total work time
+    QLabel* m_avgSessionLabel; // Average session length
+
+    // Date range selection
+    QComboBox* m_timeRangeCombo; // Time range dropdown
+    QDateEdit* m_fromDateEdit; // Custom from date
+    QDateEdit* m_toDateEdit; // Custom to date
+    QPushButton* m_refreshButton; // Refresh button
+
+    // Activity map
+    PomodoroActivityMap* m_activityMap; // Pomodoro activity heatmap
 
     // Control buttons
     QHBoxLayout* m_buttonLayout; // Horizontal button arrangement
@@ -90,9 +105,12 @@ private:
     // Core Application Components
     Timer* m_timer; // Business logic controller
     Settings* m_settings; // User preferences storage
+    DatabaseManager* m_dbManager; // Database manager
 
     // Application State
     int m_totalTime; // Current timer duration in seconds
+    QDate m_fromDate; // Statistics from date
+    QDate m_toDate; // Statistics to date
 };
 
 #endif // ZIGA_POMODORO_MAINWINDOW_H

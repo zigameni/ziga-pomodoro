@@ -37,14 +37,19 @@ if __name__ == "__main__":
     	"merge_files.py", 
     	"merged_project.txt", 
     	"ReadMe.md", 
+    	#"main.cpp",
     	"settings.cpp",
     	"settings.h",
     	"timer.h", 
     	"timer.cpp",
-    	#"mainwindow.h",
-    	#"mainwindow.cpp",
-    	"timerwindow.h",
-    	"timerwindow.cpp",
+    	"mainwindow.h",
+    	"mainwindow.cpp",
+    	#"timerwindow.h",
+    	#"timerwindow.cpp",
+    	"pomodoroactivitymap.h",
+    	"pomodoroactivitymap.cpp",
+    	"databasemanager.cpp",
+    	"databasemanager.h",
     	]  # Specific files to exclude
     
     merge_files(root_directory, output_filename, exclude_dirs_list, exclude_files_list)

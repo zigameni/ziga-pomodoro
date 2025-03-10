@@ -7,27 +7,28 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Find packages - try Qt6 first, fallback to Qt5
-find_package(Qt6 COMPONENTS Widgets Multimedia QUIET)
+# (LINE 10) Find Qt packages - try Qt6 first, fallback to Qt5
+find_package(Qt6 COMPONENTS Widgets Multimedia Sql QUIET)  # <-- ADDED Sql
 if (Qt6_FOUND)
     set(QT_VERSION_MAJOR 6)
-else()
-    find_package(Qt5 COMPONENTS Widgets Multimedia REQUIRED)
+else ()
+    find_package(Qt5 COMPONENTS Widgets Multimedia Sql REQUIRED)  # <-- ADDED Sql
     set(QT_VERSION_MAJOR 5)
-endif()
+endif ()
 
-# Add definitions based on what was found
-if(TARGET Qt${QT_VERSION_MAJOR}::Multimedia)
+# (LINE 20) Add definitions based on what was found
+if (TARGET Qt${QT_VERSION_MAJOR}::Multimedia)
     add_definitions(-DHAVE_QT_MULTIMEDIA)
-endif()
+endif ()
 
-# Define sources
+# (LINE 25) Define sources
 set(SOURCES
         src/main.cpp
         src/mainwindow.cpp
         src/timer.cpp
         src/settings.cpp
         src/timerwindow.cpp
+        src/databasemanager.cpp  # <-- ADD THIS FILE FOR DATABASE LOGIC
 )
 
 set(HEADERS
@@ -35,15 +36,18 @@ set(HEADERS
         src/timer.h
         src/settings.h
         src/timerwindow.h
+        src/databasemanager.h  # <-- ADD DATABASE HEADER
 )
 
-# Create resource file
+# (LINE 40) Create resource file
 set(RESOURCES
         resources/resources.qrc
+        src/pomodoroactivitymap.cpp
+        src/pomodoroactivitymap.h
 )
 
-# Check if the resources.qrc file exists, if not, create it
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/resources.qrc")
+# (LINE 45) Check if the resources.qrc file exists, if not, create it
+if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/resources.qrc")
     file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/resources/resources.qrc"
             "<!DOCTYPE RCC>
 <RCC version=\"1.0\">
@@ -57,30 +61,30 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/resources.qrc")
         <file>styles/default.qss</file>
     </qresource>
 </RCC>")
-endif()
+endif ()
 
-# Add executable
+# (LINE 60) Add executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${RESOURCES})
 
-# Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+# (LINE 65) Link libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)  # <-- ADDED Sql
 
-# Add multimedia if found
-if(TARGET Qt${QT_VERSION_MAJOR}::Multimedia)
+# (LINE 70) Add multimedia if found
+if (TARGET Qt${QT_VERSION_MAJOR}::Multimedia)
     target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Multimedia)
     message(STATUS "Qt Multimedia found. Sound notifications will be enabled.")
-else()
+else ()
     message(STATUS "Qt Multimedia not found. Sound notifications will be disabled.")
-endif()
+endif ()
 
-# Install
+# (LINE 78) Install
 install(TARGETS ${PROJECT_NAME}
         BUNDLE DESTINATION .
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# Make sure the resources directory exists
+# (LINE 85) Make sure the resources directory exists
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources/icons
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources/sounds

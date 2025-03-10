@@ -4,6 +4,7 @@
 
 #include "timerwindow.h"
 #include "settings.h"
+#include "databasemanager.h" // Add include for DatabaseManager
 #include <QApplication>
 #include <QDir>
 
@@ -23,21 +24,27 @@ int main(int argc, char* argv[])
     QDir().mkpath(QDir::currentPath() + "/resources/sounds");
     QDir().mkpath(QDir::currentPath() + "/resources/styles");
 
-    // Instantiate Settings object HERE
+    // Instantiate Settings object
     Settings* appSettings = new Settings(); // Create as pointer
 
-    // Initialize and display the timer window, PASSING the settings object
-    TimerWindow timerWindow(appSettings);
-    // <----- MODIFIED LINE: Pass the appSettings object to the TimerWindow constructor
+    // Create and initialize database manager
+    DatabaseManager* dbManager = new DatabaseManager();
+    if (!dbManager->initialize())
+    {
+        qWarning() << "Failed to initialize database, continuing without persistence";
+    }
 
-    // Initialize and display the timer window instead of MainWindow
-    // TimerWindow timerWindow;
+    // Initialize and display the timer window, passing the settings object
+    TimerWindow timerWindow(appSettings);
+    timerWindow.setDatabaseManager(dbManager); // Add this method to TimerWindow
     timerWindow.show();
-    // Make sure appSettings outlives the application
-    QObject::connect(&app, &QApplication::aboutToQuit, [appSettings]()
+
+    // Make sure resources outlive the application
+    QObject::connect(&app, &QApplication::aboutToQuit, [appSettings, dbManager]()
     {
         appSettings->saveSettings();
         delete appSettings;
+        delete dbManager;
     });
 
     return app.exec();

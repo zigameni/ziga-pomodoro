@@ -134,6 +134,10 @@ void Timer::setLongBreakInterval(int count)
 
 void Timer::onTimeout()
 {
+    if (m_state != TimerState::Running)
+    {
+        return;
+    }
     m_remainingSeconds--;
     m_elapsedSeconds++;
 
@@ -144,18 +148,25 @@ void Timer::onTimeout()
         m_timer->stop();
         m_state = TimerState::Stopped;
 
-        // Emit signal for timer completion
-        emit timerCompleted(m_mode);
+        emit timerTick(m_remainingSeconds);
 
-        // If work timer completed, increment counter
-        if (m_mode == TimerMode::Work)
+        if (m_remainingSeconds <= 0)
         {
-            m_pomodorosCompleted++;
-            emit pomodorosCompletedChanged(m_pomodorosCompleted);
-        }
+            // Timer is complete
+            TimerMode completedMode = m_mode;
 
-        switchToNextMode();
-        emit stateChanged(m_state);
+            if (m_mode == TimerMode::Work)
+            {
+                m_pomodorosCompleted++;
+                emit pomodorosCompletedChanged(m_pomodorosCompleted);
+            }
+
+            // Emit signal that the timer has completed with the mode that was completed
+            emit timerCompleted(completedMode);
+
+            // Switch to the next mode
+            switchToNextMode();
+        }
     }
 }
 
@@ -216,7 +227,8 @@ void Timer::resetTimerForCurrentMode()
 void Timer::skipBreak()
 {
     // Only skip if we're in a break mode
-    if (m_mode == TimerMode::ShortBreak || m_mode == TimerMode::LongBreak) {
+    if (m_mode == TimerMode::ShortBreak || m_mode == TimerMode::LongBreak)
+    {
         // Reset the timer
         m_remainingSeconds = m_workDuration;
         m_elapsedSeconds = 0;
@@ -229,10 +241,13 @@ void Timer::skipBreak()
         emit timerTick(m_remainingSeconds);
 
         // Auto-start the new work session if the break was running
-        if (m_state == TimerState::Running) {
+        if (m_state == TimerState::Running)
+        {
             // No need to call start() since we just want to continue with the timer running
             // The timer is already running, we just changed the mode and duration
-        } else {
+        }
+        else
+        {
             // If the timer was paused or stopped, keep it in that state
             reset();
         }

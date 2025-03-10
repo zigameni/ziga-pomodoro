@@ -70,15 +70,91 @@ void MainWindow::setupUi()
     titleLabel->setAlignment(Qt::AlignCenter);
     m_mainLayout->addWidget(titleLabel);
 
-    // Create pomodoros completed label
-    m_pomodorosCompletedLabel = new QLabel("Pomodoros completed: 0", m_centralWidget);
-    m_pomodorosCompletedLabel->setAlignment(Qt::AlignCenter);
-    m_mainLayout->addWidget(m_pomodorosCompletedLabel);
+    // Create summary statistics section
+    QHBoxLayout* summaryLayout = new QHBoxLayout();
 
-    // Add a placeholder for future statistics
-    QLabel* placeholderLabel = new QLabel("More statistics will be available here", m_centralWidget);
-    placeholderLabel->setAlignment(Qt::AlignCenter);
-    m_mainLayout->addWidget(placeholderLabel);
+    // Pomodoros completed
+    QVBoxLayout* pomodorosLayout = new QVBoxLayout();
+    QLabel* pomodorosTitle = new QLabel("Pomodoros", m_centralWidget);
+    pomodorosTitle->setAlignment(Qt::AlignCenter);
+    m_pomodorosCompletedLabel = new QLabel("0", m_centralWidget);
+    m_pomodorosCompletedLabel->setAlignment(Qt::AlignCenter);
+    QFont statsFont = m_pomodorosCompletedLabel->font();
+    statsFont.setPointSize(24);
+    statsFont.setBold(true);
+    m_pomodorosCompletedLabel->setFont(statsFont);
+    pomodorosLayout->addWidget(pomodorosTitle);
+    pomodorosLayout->addWidget(m_pomodorosCompletedLabel);
+
+    // Total work time
+    QVBoxLayout* timeLayout = new QVBoxLayout();
+    QLabel* timeTitle = new QLabel("Total Work Time", m_centralWidget);
+    timeTitle->setAlignment(Qt::AlignCenter);
+    m_totalTimeLabel = new QLabel("0 min", m_centralWidget);
+    m_totalTimeLabel->setAlignment(Qt::AlignCenter);
+    m_totalTimeLabel->setFont(statsFont);
+    timeLayout->addWidget(timeTitle);
+    timeLayout->addWidget(m_totalTimeLabel);
+
+    // Average session
+    QVBoxLayout* avgLayout = new QVBoxLayout();
+    QLabel* avgTitle = new QLabel("Avg Session", m_centralWidget);
+    avgTitle->setAlignment(Qt::AlignCenter);
+    m_avgSessionLabel = new QLabel("0 min", m_centralWidget);
+    m_avgSessionLabel->setAlignment(Qt::AlignCenter);
+    m_avgSessionLabel->setFont(statsFont);
+    avgLayout->addWidget(avgTitle);
+    avgLayout->addWidget(m_avgSessionLabel);
+
+    // Add to summary layout
+    summaryLayout->addLayout(pomodorosLayout);
+    summaryLayout->addLayout(timeLayout);
+    summaryLayout->addLayout(avgLayout);
+
+    // Add summary layout to main layout
+    m_mainLayout->addLayout(summaryLayout);
+
+    // Create date range selection
+    QHBoxLayout* dateRangeLayout = new QHBoxLayout();
+
+    QLabel* viewLabel = new QLabel("View:", m_centralWidget);
+    m_timeRangeCombo = new QComboBox(m_centralWidget);
+    m_timeRangeCombo->addItem("Today");
+    m_timeRangeCombo->addItem("Last 7 Days");
+    m_timeRangeCombo->addItem("Last 30 Days");
+    m_timeRangeCombo->addItem("This Month");
+    m_timeRangeCombo->addItem("Last 3 Months");
+    m_timeRangeCombo->addItem("Custom Range");
+    m_timeRangeCombo->setCurrentIndex(1); // Default to Last 7 Days
+
+    QLabel* fromLabel = new QLabel("From:", m_centralWidget);
+    m_fromDateEdit = new QDateEdit(m_centralWidget);
+    m_fromDateEdit->setCalendarPopup(true);
+    m_fromDateEdit->setDate(QDate::currentDate().addDays(-7));
+    m_fromDateEdit->setEnabled(false); // Initially disabled
+
+    QLabel* toLabel = new QLabel("To:", m_centralWidget);
+    m_toDateEdit = new QDateEdit(m_centralWidget);
+    m_toDateEdit->setCalendarPopup(true);
+    m_toDateEdit->setDate(QDate::currentDate());
+    m_toDateEdit->setEnabled(false); // Initially disabled
+
+    m_refreshButton = new QPushButton("Refresh", m_centralWidget);
+
+    dateRangeLayout->addWidget(viewLabel);
+    dateRangeLayout->addWidget(m_timeRangeCombo);
+    dateRangeLayout->addWidget(fromLabel);
+    dateRangeLayout->addWidget(m_fromDateEdit);
+    dateRangeLayout->addWidget(toLabel);
+    dateRangeLayout->addWidget(m_toDateEdit);
+    dateRangeLayout->addWidget(m_refreshButton);
+    dateRangeLayout->addStretch();
+
+    m_mainLayout->addLayout(dateRangeLayout);
+
+    // Create activity heatmap
+    m_activityMap = new PomodoroActivityMap(m_centralWidget);
+    m_mainLayout->addWidget(m_activityMap);
 
     // Add spacer to push content to the top
     m_mainLayout->addStretch();
@@ -87,7 +163,7 @@ void MainWindow::setupUi()
     m_buttonLayout = new QHBoxLayout();
     m_buttonLayout->setSpacing(5);
 
-    // Create only the settings button
+    // Create settings button
     m_settingsButton = new QPushButton("Settings", m_centralWidget);
 
     // Add button to layout
@@ -99,13 +175,16 @@ void MainWindow::setupUi()
     m_mainLayout->addLayout(m_buttonLayout);
 
     // Set size
-    resize(400, 300);
+    resize(800, 600);
 
     // Set window title
     setWindowTitle("Ziga-Pomodoro - Statistics");
     setWindowIcon(QIcon(":/icons/tomato.png"));
-}
 
+    // Initialize date range
+    m_fromDate = QDate::currentDate().addDays(-7);
+    m_toDate = QDate::currentDate();
+}
 
 void MainWindow::setupTrayIcon()
 {
@@ -146,13 +225,22 @@ void MainWindow::setupConnections()
     // Connect tray icon signals
     connect(m_trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::onTrayIconActivated);
     connect(m_showAction, &QAction::triggered, this, &QWidget::show);
+
+    // Connect new statistics signals/slots
+    connect(m_timeRangeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onTimeRangeChanged);
+    connect(m_fromDateEdit, &QDateEdit::dateChanged, this, &MainWindow::onCustomDateRangeChanged);
+    connect(m_toDateEdit, &QDateEdit::dateChanged, this, &MainWindow::onCustomDateRangeChanged);
+    connect(m_refreshButton, &QPushButton::clicked, this, &MainWindow::onRefreshStats);
+
     connect(m_quitAction, &QAction::triggered, qApp, &QApplication::quit);
 }
 
 
 void MainWindow::handlePomodorosCompletedChanged(int count)
 {
-    m_pomodorosCompletedLabel->setText(QString("Pomodoros completed: %1").arg(count));
+    // m_pomodorosCompletedLabel->setText(QString("Pomodoros completed: %1").arg(count));
+    m_pomodorosCompletedLabel->setText(QString::number(count));
 }
 
 void MainWindow::onSettingsButtonClicked()
@@ -530,3 +618,127 @@ void MainWindow::showSettingsDialog()
         applySettings();
     }
 }
+
+
+void MainWindow::setDatabaseManager(DatabaseManager* dbManager)
+{
+    m_dbManager = dbManager;
+
+    if (m_dbManager && m_activityMap)
+    {
+        m_activityMap->setDatabaseManager(m_dbManager);
+        updateStatistics();
+    }
+}
+
+void MainWindow::onTimeRangeChanged(int index)
+{
+    QDate currentDate = QDate::currentDate();
+
+    // Disable date edits by default
+    m_fromDateEdit->setEnabled(false);
+    m_toDateEdit->setEnabled(false);
+
+    switch (index)
+    {
+    case 0: // Today
+        m_fromDate = currentDate;
+        m_toDate = currentDate;
+        break;
+
+    case 1: // Last 7 Days
+        m_fromDate = currentDate.addDays(-6);
+        m_toDate = currentDate;
+        break;
+
+    case 2: // Last 30 Days
+        m_fromDate = currentDate.addDays(-29);
+        m_toDate = currentDate;
+        break;
+
+    case 3: // This Month
+        m_fromDate = QDate(currentDate.year(), currentDate.month(), 1);
+        m_toDate = currentDate;
+        break;
+
+    case 4: // Last 3 Months
+        m_fromDate = currentDate.addMonths(-3).addDays(1);
+        m_toDate = currentDate;
+        break;
+
+    case 5: // Custom Range
+        // Keep the previously set dates
+        m_fromDateEdit->setEnabled(true);
+        m_toDateEdit->setEnabled(true);
+        break;
+    }
+
+    // Update date edit controls to match the selected range
+    m_fromDateEdit->setDate(m_fromDate);
+    m_toDateEdit->setDate(m_toDate);
+
+    // Update statistics with the new date range
+    updateStatistics();
+}
+
+void MainWindow::onCustomDateRangeChanged()
+{
+    if (m_timeRangeCombo->currentIndex() == 5)
+    {
+        // Custom Range
+        m_fromDate = m_fromDateEdit->date();
+        m_toDate = m_toDateEdit->date();
+
+        // If from date is after to date, swap them
+        if (m_fromDate > m_toDate)
+        {
+            m_toDate = m_fromDate;
+            m_fromDateEdit->setDate(m_fromDate);
+            m_toDateEdit->setDate(m_toDate);
+        }
+
+        updateStatistics();
+    }
+}
+
+void MainWindow::onRefreshStats()
+{
+    updateStatistics();
+}
+
+void MainWindow::updateStatistics()
+{
+    if (!m_dbManager)
+    {
+        return;
+    }
+
+    // Update activity map with the selected date range
+    if (m_activityMap)
+    {
+        m_activityMap->setDateRange(m_fromDate, m_toDate);
+        m_activityMap->refreshData();
+    }
+
+    // Update summary statistics labels
+    int totalPomodoros = 0;
+    int totalMinutes = 0;
+
+    // Calculate statistics for each day in the range
+    QDate date = m_fromDate;
+    while (date <= m_toDate)
+    {
+        totalPomodoros += m_dbManager->getTotalCompletedPomodoros(date);
+        totalMinutes += m_dbManager->getTotalWorkMinutes(date);
+        date = date.addDays(1);
+    }
+
+    // Update the labels
+    m_pomodorosCompletedLabel->setText(QString::number(totalPomodoros));
+    m_totalTimeLabel->setText(QString("%1 min").arg(totalMinutes));
+
+    // Calculate average session length
+    double avgSession = m_dbManager->getAverageSessionLength(m_fromDate, m_toDate);
+    m_avgSessionLabel->setText(QString("%1 min").arg(avgSession, 0, 'f', 1));
+}
+

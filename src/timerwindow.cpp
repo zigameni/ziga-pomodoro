@@ -8,6 +8,8 @@
 #include <QApplication>
 #include <QStyle>
 #include <QGraphicsDropShadowEffect>
+#include <QMediaPlayer> // Make sure these are included at the top of timerwindow.cpp
+#include <QSystemTrayIcon>
 
 TimerWindow::TimerWindow(Settings* settings, QWidget* parent)
     : QWidget(parent)
@@ -15,6 +17,11 @@ TimerWindow::TimerWindow(Settings* settings, QWidget* parent)
       , m_timer(new Timer(this))
       , m_mainWindow(nullptr)
 {
+    m_dbManager = nullptr;
+    m_hasDbManager = false;
+    m_sessionStartTime = QDateTime();
+
+
     // Set window flags for a frameless, always-on-top window
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
@@ -31,6 +38,12 @@ TimerWindow::TimerWindow(Settings* settings, QWidget* parent)
     updateTimerDisplay(m_timer->getRemainingTime());
     handleModeChanged(m_timer->getMode());
     handleStateChanged(m_timer->getState());
+
+    m_mediaPlayer = new QMediaPlayer(this);
+    m_trayIcon = new QSystemTrayIcon(this);
+    m_trayIcon->setIcon(QIcon::fromTheme("ziga-pomodoro-icon", QIcon(":/icons/tomato.png")));
+    // Replace with your icon
+    m_trayIcon->show(); // Show tray icon (or hide it if you only want notifications)
 }
 
 TimerWindow::~TimerWindow() = default;
@@ -228,6 +241,8 @@ void TimerWindow::setupConnections()
     connect(m_appSettings, &Settings::settingsChanged, this, &TimerWindow::onSettingsChanged);
     // connect(m_closeButton, &QPushButton::clicked, this, &QWidget::close);
     connect(m_closeButton, &QPushButton::clicked, qApp, &QApplication::quit);
+
+    connect(m_timer, &Timer::timerCompleted, this, &TimerWindow::handleTimerCompleted);
 }
 
 void TimerWindow::updateTimerDisplay(int remainingSeconds)
@@ -274,6 +289,12 @@ void TimerWindow::handleStateChanged(Timer::TimerState state)
         break;
     }
 
+    // Add this for database tracking
+    if (state == Timer::TimerState::Running && m_timer->getElapsedTime() == 0)
+    {
+        // Just started
+        m_sessionStartTime = QDateTime::currentDateTime();
+    }
     updateStartPauseButton();
 }
 
@@ -323,28 +344,55 @@ void TimerWindow::onStartPauseButtonClicked()
 
 void TimerWindow::onStopButtonClicked()
 {
+    // Add this for database tracking of interrupted sessions
+    if (m_hasDbManager && m_dbManager && !m_sessionStartTime.isNull() &&
+        m_timer->getState() != Timer::TimerState::Stopped)
+    {
+        QDateTime endTime = QDateTime::currentDateTime();
+        int duration = m_sessionStartTime.secsTo(endTime);
+
+        if (m_timer->getMode() == Timer::TimerMode::Work)
+        {
+            m_dbManager->recordPomodoroSession(m_sessionStartTime, duration, false); // incomplete
+        }
+    }
     m_timer->reset();
 }
 
+// void TimerWindow::setDatabaseManager(DatabaseManager* dbManager)
+// {
+//     m_dbManager = dbManager;
+//     m_hasDbManager = (dbManager != nullptr && dbManager->isInitialized());
+// }
+// This should go in the setDatabaseManager method in TimerWindow
+void TimerWindow::setDatabaseManager(DatabaseManager* dbManager)
+{
+    m_dbManager = dbManager;
+    m_hasDbManager = (dbManager != nullptr && dbManager->isInitialized());
+
+    // If MainWindow is already created, pass the database manager to it
+    if (m_mainWindow)
+    {
+        m_mainWindow->setDatabaseManager(dbManager);
+    }
+}
+
+// Modify the onSettingsButtonClicked method to include the database manager
 void TimerWindow::onSettingsButtonClicked()
 {
     if (!m_mainWindow)
     {
-        // Pass the settings object
         m_mainWindow = new MainWindow(m_appSettings, nullptr);
 
-        // Share the timer instance with MainWindow
-        if (m_mainWindow->m_timer)
+        // If we have a database manager, pass it to the MainWindow
+        if (m_hasDbManager && m_dbManager)
         {
-            delete m_mainWindow->m_timer;
-            m_mainWindow->m_timer = m_timer;
-
-            // Reconnect signals in MainWindow
-            m_mainWindow->setupConnections();
+            m_mainWindow->setDatabaseManager(m_dbManager);
         }
     }
 
     m_mainWindow->show();
+    m_mainWindow->raise();
     m_mainWindow->activateWindow();
 }
 
@@ -455,4 +503,88 @@ void TimerWindow::updateWindowSize()
     resize(textWidth + padding, textHeight + padding);
 
     qDebug() << "Window resized to:" << width() << "x" << height();
+}
+
+// Add this method to your TimerWindow implementation
+
+// Implement the new slot for timer completion
+void TimerWindow::handleTimerCompleted(Timer::TimerMode completedMode)
+{
+    if (!m_hasDbManager || !m_dbManager)
+    {
+        return; // Skip database recording if no DB manager
+    }
+
+    QDateTime endTime = QDateTime::currentDateTime();
+    int duration = m_sessionStartTime.secsTo(endTime);
+
+    if (completedMode == Timer::TimerMode::Work)
+    {
+        m_dbManager->recordPomodoroSession(m_sessionStartTime, duration, true);
+    }
+    else if (completedMode == Timer::TimerMode::ShortBreak)
+    {
+        m_dbManager->recordBreakSession(m_sessionStartTime, duration, false);
+    }
+    else if (completedMode == Timer::TimerMode::LongBreak)
+    {
+        m_dbManager->recordBreakSession(m_sessionStartTime, duration, true);
+    }
+
+    QString title;
+    QString message;
+
+    if (completedMode == Timer::TimerMode::Work)
+    {
+        title = "Work Session Complete!";
+        message = "Time for a break.";
+    }
+    else if (completedMode == Timer::TimerMode::ShortBreak || completedMode == Timer::TimerMode::LongBreak)
+    {
+        title = "Break Over!";
+        message = "Time to get back to work.";
+    }
+
+    // Show notification - using existing setting name
+    if (m_appSettings->getDesktopNotificationsEnabled())
+    {
+        showDesktopNotification(title, message);
+    }
+
+    // Play sound - using existing setting name
+    if (m_appSettings->getSoundEnabled())
+    {
+        playNotificationSound();
+    }
+}
+
+// void TimerWindow::playNotificationSound()
+// {
+// #ifdef HAVE_QT_MULTIMEDIA // Keep the conditional compilation if it's important for your build
+//     if (m_appSettings->getSoundEnabled()) // Use m_appSettings here
+//     {
+//         m_mediaPlayer->setMedia(QUrl::fromLocalFile(m_appSettings->getSoundFile())); // Use m_appSettings here
+//         m_mediaPlayer->play();
+//     }
+// #endif
+// }
+//
+
+void TimerWindow::playNotificationSound()
+{
+#ifdef HAVE_QT_MULTIMEDIA
+    if (m_appSettings->getSoundEnabled()) // Use m_appSettings
+    {
+        m_mediaPlayer->setMedia(QUrl::fromLocalFile(m_appSettings->getSoundFile())); // Use m_appSettings
+        m_mediaPlayer->play();
+    }
+#endif
+}
+
+void TimerWindow::showDesktopNotification(const QString& title, const QString& message)
+{
+    if (m_appSettings->getDesktopNotificationsEnabled()) // Use m_appSettings, keep existing name
+    {
+        m_trayIcon->showMessage(title, message, QSystemTrayIcon::Information, 3000);
+    }
 }
