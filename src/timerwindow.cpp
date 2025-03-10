@@ -573,13 +573,27 @@ void TimerWindow::handleTimerCompleted(Timer::TimerMode completedMode)
 void TimerWindow::playNotificationSound()
 {
 #ifdef HAVE_QT_MULTIMEDIA
-    if (m_appSettings->getSoundEnabled()) // Use m_appSettings
+    if (m_appSettings->getSoundEnabled())
     {
-        m_mediaPlayer->setMedia(QUrl::fromLocalFile(m_appSettings->getSoundFile())); // Use m_appSettings
+        QString soundFile = m_appSettings->getSoundFile();
+
+        // Check if it's a QRC path (starts with ":/")
+        QUrl mediaUrl;
+        if (soundFile.startsWith(":/"))
+        {
+            mediaUrl = QUrl("qrc" + soundFile); // Convert ":/" to "qrc:/"
+        }
+        else
+        {
+            mediaUrl = QUrl::fromLocalFile(soundFile); // Assume it's a filesystem path
+        }
+
+        m_mediaPlayer->setMedia(mediaUrl);
         m_mediaPlayer->play();
     }
 #endif
 }
+
 
 void TimerWindow::showDesktopNotification(const QString& title, const QString& message)
 {

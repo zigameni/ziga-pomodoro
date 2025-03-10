@@ -7,28 +7,28 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# (LINE 10) Find Qt packages - try Qt6 first, fallback to Qt5
-find_package(Qt6 COMPONENTS Widgets Multimedia Sql QUIET)  # <-- ADDED Sql
+# Find Qt packages - try Qt6 first, fallback to Qt5
+find_package(Qt6 COMPONENTS Widgets Multimedia Sql QUIET)
 if (Qt6_FOUND)
     set(QT_VERSION_MAJOR 6)
 else ()
-    find_package(Qt5 COMPONENTS Widgets Multimedia Sql REQUIRED)  # <-- ADDED Sql
+    find_package(Qt5 COMPONENTS Widgets Multimedia Sql REQUIRED)
     set(QT_VERSION_MAJOR 5)
 endif ()
 
-# (LINE 20) Add definitions based on what was found
+# Add definitions based on what was found
 if (TARGET Qt${QT_VERSION_MAJOR}::Multimedia)
     add_definitions(-DHAVE_QT_MULTIMEDIA)
 endif ()
 
-# (LINE 25) Define sources
+# Define sources
 set(SOURCES
         src/main.cpp
         src/mainwindow.cpp
         src/timer.cpp
         src/settings.cpp
         src/timerwindow.cpp
-        src/databasemanager.cpp  # <-- ADD THIS FILE FOR DATABASE LOGIC
+        src/databasemanager.cpp
 )
 
 set(HEADERS
@@ -36,17 +36,17 @@ set(HEADERS
         src/timer.h
         src/settings.h
         src/timerwindow.h
-        src/databasemanager.h  # <-- ADD DATABASE HEADER
+        src/databasemanager.h
 )
 
-# (LINE 40) Create resource file
+# Create resource file
 set(RESOURCES
         resources/resources.qrc
         src/pomodoroactivitymap.cpp
         src/pomodoroactivitymap.h
 )
 
-# (LINE 45) Check if the resources.qrc file exists, if not, create it
+# Ensure resources.qrc file exists
 if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/resources.qrc")
     file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/resources/resources.qrc"
             "<!DOCTYPE RCC>
@@ -63,13 +63,13 @@ if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/resources.qrc")
 </RCC>")
 endif ()
 
-# (LINE 60) Add executable
+# Create executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${RESOURCES})
 
-# (LINE 65) Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)  # <-- ADDED Sql
+# Link Qt libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
 
-# (LINE 70) Add multimedia if found
+# Add multimedia if found
 if (TARGET Qt${QT_VERSION_MAJOR}::Multimedia)
     target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Multimedia)
     message(STATUS "Qt Multimedia found. Sound notifications will be enabled.")
@@ -77,16 +77,32 @@ else ()
     message(STATUS "Qt Multimedia not found. Sound notifications will be disabled.")
 endif ()
 
-# (LINE 78) Install
+# Install targets
 install(TARGETS ${PROJECT_NAME}
         BUNDLE DESTINATION .
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# (LINE 85) Make sure the resources directory exists
+# Make sure the resources directory exists
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources/icons
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources/sounds
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources/styles
 )
+
+# CPack configuration for packaging
+include(CPack)
+
+# Define the package information
+set(CPACK_PACKAGE_NAME "ziga-pomodoro")
+set(CPACK_PACKAGE_VERSION "0.1")
+set(CPACK_PACKAGE_DESCRIPTION "A Pomodoro timer application built with Qt5/Qt6.")
+set(CPACK_PACKAGE_CONTACT "github.com/zigameni")
+set(CPACK_PACKAGE_VENDOR "zigameni")
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Linux")
+set(CPACK_GENERATOR "TGZ")  # You can switch this to DEB, RPM, ZIP, etc.
+
+# Define dependencies for packaging
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Gazmend Shehu")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt5core5a, libqt5widgets5, libqt5multimedia5")  # Adjust package dependencies as necessary
